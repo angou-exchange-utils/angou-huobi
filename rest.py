@@ -1,7 +1,7 @@
 from urllib.parse import urlencode
 import logging
 import requests
-import auth_utils
+from . import auth_utils
 
 
 _USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:53.0) Gecko/20100101 Firefox/53.0'
