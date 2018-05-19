@@ -1,5 +1,4 @@
 from urllib.parse import urlencode
-import json
 import logging
 import requests
 import auth_utils
@@ -21,29 +20,28 @@ class RestSession:
         self.api_secret = api_secret
         self.domain = domain
         self.lang = lang
+        self._session = requests.Session()
+        self._session.headers.update({
+            'Accept': 'application/json',
+            'User-Agent': _USER_AGENT,
+            'Accept-Language': self.lang,
+        })
         self.logger = logging.getLogger('angou_huobi')
 
-    @staticmethod
-    def _postprocess(req):
-        req.raise_for_status()
-        resp = req.json()
+    def _postprocess(self, req):
+        r = self._session.send(self._session.prepare_request(req))
+        r.raise_for_status()
+        resp = r.json()
         if resp['status'] == 'error':
             raise RestError(resp.get('err-code', ''), resp.get('err-msg', ''))
         return resp['data']
 
     def _get(self, url, params=None):
-        return self._postprocess(requests.get(url, params, headers={
-            'Accept': 'application/json',
-            'User-Agent': _USER_AGENT,
-            'Accept-Language': self.lang,
-        }))
+        return self._postprocess(requests.Request('GET', url, params=params))
 
     def _post(self, url, params=None):
-        return self._postprocess(requests.post(url, json.dumps(params), headers={
+        return self._postprocess(requests.Request('POST', url, json=params, headers={
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'User-Agent': _USER_AGENT,
-            'Accept-Language': self.lang,
         }))
 
     def _sign(self, verb, path, params):
