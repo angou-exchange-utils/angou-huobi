@@ -39,36 +39,34 @@ class RestSession:
     def _get(self, url, params=None):
         return self._postprocess(requests.Request('GET', url, params=params))
 
-    def _post(self, url, params=None):
-        return self._postprocess(requests.Request('POST', url, json=params, headers={
+    def _post(self, url, params=None, query=None):
+        return self._postprocess(requests.Request('POST', url, json=params, params=query, headers={
             'Content-Type': 'application/json',
         }))
 
-    def _sign(self, verb, path, params):
-        encoded_params = urlencode(sorted(params.items(), key=lambda kv: kv[0]))
-        payload = '\n'.join((verb, self.domain, path, encoded_params))
-        return auth_utils.generate_signature(self.api_secret, payload)
-
-    def _auth_params(self, verb, path):
-        params = {
+    def _add_auth_params(self, verb, path, params):
+        params.update({
             'AccessKeyId': self.api_key,
             'SignatureMethod': 'HmacSHA256',
             'SignatureVersion': '2',
             'Timestamp': auth_utils.generate_timestamp(),
-        }
-        params['Signature'] = self._sign(verb, path, params)
-        return params
+        })
+        encoded_params = urlencode(sorted(params.items(), key=lambda kv: kv[0]))
+        payload = '\n'.join((verb, self.domain, path, encoded_params))
+        params['Signature'] = auth_utils.generate_signature(self.api_secret, payload)
 
     def get(self, path, signed=False, params=None):
         self.logger.debug('GET %s signed=%s params=%s', path, signed, params)
         if signed:
             params = params or {}
-            params.update(self._auth_params('GET', path))
+            self._add_auth_params('GET', path, params)
         return self._get(f'https://{self.domain}{path}', params)
 
     def post(self, path, signed=False, params=None):
         self.logger.debug('POST %s signed=%s params=%s', path, signed, params)
         url = f'https://{self.domain}{path}'
+        query = None
         if signed:
-            url += '?' + urlencode(self._auth_params('POST', path))
-        return self._post(url, params)
+            query = {}
+            self._add_auth_params('POST', path, query)
+        return self._post(url, params, query)
