@@ -64,7 +64,7 @@ class RestSession:
         if signed:
             params = params or {}
             params.update(self._auth_params('GET', path))
-        return self._get('https://{self.domain}{path}', params)
+        return self._get(f'https://{self.domain}{path}', params)
 
     def post(self, path, signed=False, params=None):
         self.logger.debug('POST %s signed=%s params=%s', path, signed, params)
