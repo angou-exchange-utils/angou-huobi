@@ -1,7 +1,7 @@
 from setuptools import setup
 
 
-VERSION = '2'
+VERSION = '3'
 
 
 setup(name='angou_huobi',
